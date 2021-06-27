@@ -1,33 +1,156 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun 22 21:57:51 2021
-
+Created on Tue Jun 22 20:03:35 2021
+ pyinstaller.exe --onefile -w --icon=yourIcon.ico 
 @author: Adhmir Renan Voltolini Gomes
 """
 
+# Youtube Link da tela inicial: https://www.youtube.com/watch?v=PgLjwl6Br0k
+
+import tkinter as tk
+from tkinter import filedialog, ttk, PhotoImage
+
+
 import pandas as pd
 import numpy as np 
+import algoritmo_dp2 as alg_dp2
 
-df = pd.read_excel('C:/PHD/Disciplinas/06 - Analise Decisoria/Adriana_df.xlsx')
 
-criterios = df.drop("Alternativas", axis=1)
+# initalise the tkinter GUI
+root = tk.Tk()
+root.title("Análise Decisória Multicritério")
+
+
+root.state('zoomed')
+#root.geometry("500x500") # set the root dimensions
+#root.pack_propagate(False) # tells the root to not let the widgets inside it determine its size.
+#root.resizable(0, 0) # makes the root window fixed in size.
+
+p1 = PhotoImage(file = 'C:/PHD/Disciplinas/06 - Analise Decisoria/PPGCC.png')
+ 
+# Setting icon of master window
+root.iconphoto(False, p1)
+
+# Frame for open file dialog
+file_frame = tk.LabelFrame(root, text="Menu principal")
+file_frame.place(height=100, width=1200, rely=0.58, relx=0)
+
+
+file_frame1 = tk.LabelFrame(root, text="Técnicas multicritérios")
+file_frame1.place(height=100, width=1200, rely=0.75, relx=0, )
+
+
+# Buttons
+button1 = tk.Button(file_frame, text="Buscar", command=lambda: File_dialog())
+button1.place(rely=0.65, relx=0.10)
+
+button2 = tk.Button(file_frame, text="Carregar", command=lambda: Load_excel_data())
+button2.place(rely=0.65, relx=0.20)
+
+button3 = tk.Button(file_frame, text="Limpar", command=lambda: clear_data())
+button3.place(rely=0.65, relx=0.30)
+
+button4 = tk.Button(file_frame1, text="ADRIANA", command=lambda: calcular())
+button4.place(rely=0.65, relx=0.10)
+
+button4 = tk.Button(file_frame1, text="DP2", command=lambda: calcularDP2())
+button4.place(rely=0.65, relx=0.20)
+
+button5 = tk.Button(file_frame, text="Salvar", command=lambda: salvar())
+button5.place(rely=0.65, relx=0.40)
+
+
+# The file/file path text
+label_file = ttk.Label(file_frame, text="Nenhum arquivo selecionado, clique em buscar")
+label_file.place(rely=0, relx=0)
+
+# Frame for TreeView
+frame1 = tk.LabelFrame(root, text="Conjunto de dados")
+frame1.place(height=400, width=1200)
+
+
+## Treeview Widget
+tv1 = ttk.Treeview(frame1)
+tv1.place(relheight=1, relwidth=1) # set the height and width of the widget to 100% of its container (frame1).
+
+treescrolly = tk.Scrollbar(frame1, orient="vertical", command=tv1.yview) # command means update the yaxis view of the widget
+treescrollx = tk.Scrollbar(frame1, orient="horizontal", command=tv1.xview) # command means update the xaxis view of the widget
+tv1.configure(xscrollcommand=treescrollx.set, yscrollcommand=treescrolly.set) # assign the scrollbars to the Treeview Widget
+treescrollx.pack(side="bottom", fill="x") # make the scrollbar fill the x axis of the Treeview widget
+treescrolly.pack(side="right", fill="y") # make the scrollbar fill the y axis of the Treeview widget
+
+
+
+def File_dialog():
+    """This Function will open the file explorer and assign the chosen file path to label_file"""
+    filename = filedialog.askopenfilename(initialdir="/",
+                                          title="Select A File",
+                                          filetype=(("xlsx files", "*.xlsx"),("All Files", "*.*")))
+    label_file["text"] = filename
+    return None
+
+
+def Load_excel_data():
+    """If the file selected is valid this will load the file into the Treeview"""
+    file_path = label_file["text"]
+    try:
+        excel_filename = r"{}".format(file_path)
+        if excel_filename[-4:] == ".csv":
+            df = pd.read_csv(excel_filename)
+        else:
+            df = pd.read_excel(excel_filename)
+
+    except ValueError:
+        tk.messagebox.showerror("Information", "Arquivo escolhido inválido")
+        return None
+    except FileNotFoundError:
+        tk.messagebox.showerror("Information", f"{file_path}")
+        return None
+
+    clear_data()
+    tv1["column"] = list(df.columns)
+    tv1["show"] = "headings"
+    for column in tv1["columns"]:
+        tv1.heading(column, text=column) # let the column heading = column name
+
+    df_rows = df.to_numpy().tolist() # turns the dataframe into a list of lists
+    for row in df_rows:
+        tv1.insert("", "end", values=row) # inserts each list into the treeview. For parameters see https://docs.python.org/3/library/tkinter.ttk.html#tkinter.ttk.Treeview.insert
+    return None
+
+def pegar_dados():
+    file_path = label_file["text"]
+    excel_filename = r"{}".format(file_path)
+    if excel_filename[-4:] == ".csv":
+        df = pd.read_csv(excel_filename)
+    else:
+        df = pd.read_excel(excel_filename)
+        return df
+    
+
+def clear_data():
+    tv1.delete(*tv1.get_children())
+    tv1["column"] = []
+   
+    return None
+
+
+"""
+Cálculo do método adriana
+
+"""
+
+
 
         
 def normalizar(x):
     df_norm = (x-x.min())/(x.max()-x.min())
     return df_norm
-
-df_normalizado = criterios.copy()
-df_normalizado = normalizar(df_normalizado)
-
   
 def aquisicao(x):
     for i in range(len(x.columns)):
         x[x.columns[i:i+1]] = x[x.columns[i:i+1]]-x[x.columns[i:i+1]].mean()
     return x           
-
-df_aquisicao = df_normalizado.copy()
-df_aquisicao = aquisicao(df_aquisicao)
 
 
 def naquisicao(x):
@@ -43,24 +166,17 @@ def naquisicao(x):
          
     return x
 
-df_naquisicao = df_normalizado.copy()
-df_naquisicao = naquisicao(df_naquisicao)
-
 
 def ai_tij(x):
     pesos = 1/len(x.columns)
     x = x.mul(pesos).sum(1)
     return x
 
-serie_ai = ai_tij(df_aquisicao)
-serie_ai.rename("Valores_ai", inplace = True)
-serie_tij = ai_tij(df_naquisicao)
     
 def vth(x,y, vlamba = 0.5):
     Vth = (x*vlamba)+(y*(1-vlamba))
     return Vth
     
-Valor_Thales = vth(serie_ai,serie_tij)
 
 def f_utilidade(x):
     phi = (1+np.sqrt(5))/2
@@ -70,13 +186,7 @@ def f_utilidade(x):
     else:
         utl = -phi*np.sqrt(np.abs(x))
     return utl
-         
-pontos_utilidade = Valor_Thales.apply(f_utilidade)
-
-
-df1 = pd.read_excel('C:/PHD/Disciplinas/06 - Analise Decisoria/Adriana_df.xlsx')
-
-
+   
 def adriana(x):
     
     x_norm = normalizar(x.copy())
@@ -93,16 +203,88 @@ def adriana(x):
     Valor_thales =  vth(serie_ai, serie_tij)
     Valor_thales.rename('Valor_de_Thales', inplace = True)
     funcao_utlidade = Valor_thales.apply(f_utilidade)
-    funcao_utlidade.rename("Funcao_util", inplace = True)
+    funcao_utlidade.rename("Funcao_utilidade", inplace = True)
     
     x = pd.concat([x, x_norm,
                    x_aquisicao, x_naquisicao, 
                    serie_ai, serie_tij, Valor_thales, funcao_utlidade ], axis=1)
+    x['ranking'] = x['Valor_de_Thales'].rank(ascending=False)
+   
+    
     
     return x
 
-teste = adriana(criterios)
+Metodo_salvar = []
 
+def calcular():
+    global Metodo_salvar
+    Metodo_salvar = ["calcular"]
+    
+    x = pegar_dados()
+    
+    x = adriana(x)
+    
+    
+    clear_data()
+    tv1["column"] = list(x.columns)
+    tv1["show"] = "headings"
+    for column in tv1["columns"]:
+        tv1.heading(column, text=column) # let the column heading = column name
+
+    df_rows = x.to_numpy().tolist() # turns the dataframe into a list of lists
+    for row in df_rows:
+        tv1.insert("", "end", values=row) # inserts each list into the treeview. For parameters see https://docs.python.org/3/library/tkinter.ttk.html#tkinter.ttk.Treeview.insert
+    return None
+
+
+"""
+CÁLCULO DP2 calculo_DP2
+
+"""
+
+
+def calcularDP2():
+    global Metodo_salvar
+    Metodo_salvar = ["calcularDP2"]
+    df = pegar_dados()
+    
+    x = alg_dp2.calculo_DP2(df)
+    
+    
+    clear_data()
+    tv1["column"] = list(x.columns)
+    tv1["show"] = "headings"
+    for column in tv1["columns"]:
+        tv1.heading(column, text=column) # let the column heading = column name
+
+    df_rows = x.to_numpy().tolist() # turns the dataframe into a list of lists
+    for row in df_rows:
+        tv1.insert("", "end", values=row) # inserts each list into the treeview. For parameters see https://docs.python.org/3/library/tkinter.ttk.html#tkinter.ttk.Treeview.insert
+    return None
+
+## TODO: FAZER SALVAR O MÉTODO DP2 TAMBÉM
+def salvar():
+    local = label_file["text"]
+    global Metodo_salvar
+   
+    if Metodo_salvar != ["calcularDP2"]:
+        dados = pegar_dados()
+        dados = adriana(dados)
+        writer = pd.ExcelWriter(local, engine='xlsxwriter')
+        dados.to_excel(writer, sheet_name='ADRIANA')
+        writer.save()
+        writer.close()
+    else:
+        dados = pegar_dados()
+        dados = alg_dp2.calculo_DP2(dados)
+        writer = pd.ExcelWriter(local, engine='xlsxwriter')
+        dados.to_excel(writer, sheet_name='ADRIANA')
+        writer.save()
+        writer.close()
+    
+    
+
+"""
 import matplotlib.pyplot as plt
 
 plt.scatter(pontos_utilidade,Valor_Thales, c="blue", alpha=0.5, 
@@ -111,5 +293,8 @@ plt.xlabel("pontos_utilidade")
 plt.ylabel("Valor_Thales")
 plt.legend(loc='upper left')
 plt.show() 
+    
+"""  
 
 
+root.mainloop()
