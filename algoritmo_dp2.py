@@ -79,7 +79,7 @@ def modelos(x):
     ordem_frechet = ordemfrechet(x)
         
     modelos = []
-    for i in range(len(x)-1):
+    for i in range(len(x.columns)):
         
         ordem_modelos = ordem_frechet.loc[0:i,['index']].values
         
@@ -97,9 +97,9 @@ def rquadrado(x):
     lista_modelos = modelos(df_frechet)
     v1_r2 = [1.000]
     constante =  np.ones((len(x),1))
-    for i in range(len(lista_modelos)):
+    for i in range(len(x.columns)-1):
             #Listas com os nomes dos modelos
-            dependente = pd.Series(np.reshape(lista_modelos[i][len(lista_modelos[i])-1],-1)) 
+            dependente = pd.Series(np.reshape(lista_modelos[i][-1],-1)) 
             independentes = pd.Series(np.reshape(lista_modelos[i][0:len(lista_modelos[i])-1], -1)) 
             Vetores_y = x[dependente]
             
